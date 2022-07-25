@@ -3,25 +3,22 @@ import fs from 'fs'
 import path from 'path'
 import getRouter, { Router } from './router'
 import { renderPageToString } from './render'
-import * as log from './log'
+import * as log from './utils/log'
+import { pageBuildExtension } from './utils/files'
 interface Options {
     buildDirectory: string
     pagesDirectory: string
 }
 
-const pageBuildExtension = (page: string) =>
-    page.replace(/\.(jsx|js|tsx|ts)/, '.html')
-
+const DEFAULT_OPTIONS = {
+    buildDirectory: './.pleb',
+    pagesDirectory: './examples',
+}
 class Server {
     router!: Router
     options!: Options
 
-    constructor(
-        options: Options = {
-            buildDirectory: './.pleb',
-            pagesDirectory: './examples',
-        }
-    ) {
+    constructor(options: Options = DEFAULT_OPTIONS) {
         this.options = options
         this.init()
     }

@@ -1,5 +1,6 @@
+import hydrate from './client/hydrate'
 import { FC, ReactElement } from 'react'
-import ReactDOM from 'react-dom/server'
+import ReactDOMServer from 'react-dom/server'
 import App from './pages/App'
 import document from './pages/document'
 
@@ -10,11 +11,10 @@ const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
 }
 
 export const renderPageToString = (Page: any) => {
-    return document(
-        ReactDOM.renderToString(
-            <ServerContext>
-                <Page />
-            </ServerContext>
-        )
+    const App = (
+        <ServerContext>
+            <Page />
+        </ServerContext>
     )
+    return document(ReactDOMServer.renderToString(App), hydrate(App))
 }

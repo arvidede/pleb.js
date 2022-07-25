@@ -5,7 +5,7 @@ interface Props {
 }
 
 const App: FC<Props> = ({ children }) => {
-    return <main>{children}</main>
+    return <div>{children}</div>
 }
 
 export default App

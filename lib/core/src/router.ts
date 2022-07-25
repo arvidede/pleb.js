@@ -1,5 +1,5 @@
 import express, { RequestHandler, Application } from 'express'
-import * as log from './log'
+import * as log from './utils/log'
 
 interface Options {
     pageHandler: RequestHandler

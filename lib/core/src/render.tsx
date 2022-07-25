@@ -1,11 +1,20 @@
-import React from 'react'
+import { FC, ReactElement } from 'react'
 import ReactDOM from 'react-dom/server'
-import App from './App'
+import App from './pages/App'
+import document from './pages/document'
 
-const ServerContext = (page: any) => {
-    return <App>{page}</App>
+const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
+    children,
+}) => {
+    return <App>{children}</App>
 }
 
-export const renderPageToString = (page: any) => {
-    return ReactDOM.renderToString(<ServerContext>{page}</ServerContext>)
+export const renderPageToString = (Page: any) => {
+    return document(
+        ReactDOM.renderToString(
+            <ServerContext>
+                <Page />
+            </ServerContext>
+        )
+    )
 }

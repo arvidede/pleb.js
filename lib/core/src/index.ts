@@ -1,19 +1,25 @@
-import express, { RequestHandler } from 'express'
+import { Request, RequestHandler } from 'express'
 import fs from 'fs'
+import path from 'path'
+import getRouter, { Router } from './router'
 import { renderPageToString } from './render'
+import * as log from './log'
 interface Options {
     buildDirectory: string
     pagesDirectory: string
 }
 
+const pageBuildExtension = (page: string) =>
+    page.replace(/\.(jsx|js|tsx|ts)/, '.html')
+
 class Server {
-    app!: express.Application
+    router!: Router
     options!: Options
 
     constructor(
         options: Options = {
-            buildDirectory: './pleb',
-            pagesDirectory: './pages',
+            buildDirectory: './.pleb',
+            pagesDirectory: './examples',
         }
     ) {
         this.options = options
@@ -21,54 +27,83 @@ class Server {
     }
 
     init() {
-        this.app = express()
         this.buildPages()
-        this.buildRoutes()
+        const handler = this.createPageHandler()
+        this.router = getRouter(handler)
+    }
+
+    get pageDirectory() {
+        return path.join(__dirname, this.options.pagesDirectory)
+    }
+
+    get buildDirectory() {
+        return path.join(__dirname, this.options.buildDirectory)
     }
 
     createBuildDirectory() {
-        fs.mkdirSync(this.options.buildDirectory)
+        if (fs.existsSync(this.buildDirectory)) {
+            log.info('Removing existing build output')
+            fs.rmSync(this.buildDirectory, {
+                recursive: true,
+                force: true,
+            })
+        }
+        fs.mkdirSync(this.buildDirectory)
     }
 
     async buildPages() {
-        const pages = fs.readdirSync(this.options.pagesDirectory)
+        if (!fs.existsSync(this.pageDirectory)) {
+            log.warn(`No 'pages' directory found at ${this.pageDirectory}`)
+            this.exit()
+        }
 
         this.createBuildDirectory()
 
-        await Promise.all(
-            pages.map(async (page) => {
-                const jsx = await import(page)
-                const markup = renderPageToString(jsx)
-                fs.writeFileSync(page, markup)
-            })
-        )
+        const pages = fs.readdirSync(this.pageDirectory)
+
+        let currentPage = 1
+        const numPages = pages.length
+
+        log.info('Compiling pages...')
+        for (const page of pages) {
+            const pagePath = path.join(this.pageDirectory, page)
+            log.info(`- (${currentPage++}/${numPages}): ${pagePath}`)
+            const jsx = require(pagePath)
+            const markup = renderPageToString(jsx.default)
+            fs.writeFileSync(
+                path.join(this.buildDirectory, pageBuildExtension(page)),
+                markup
+            )
+        }
+        log.info(`Compiled ${currentPage - 1} pages.`)
     }
 
-    createPageHandler(): RequestHandler {
+    private getPagePathFromRequest<T>(req: Request<T>) {
+        const url = new URL(req.url, 'http://localhost:3000')
+        if (url.pathname === '/') url.pathname = 'index'
+        return path.join(this.buildDirectory, url.pathname + '.html')
+    }
+
+    private createPageHandler(): RequestHandler {
         return async (req, res) => {
-            const url = new URL(req.url)
-            const page = this.options.buildDirectory + url.pathname
+            try {
+                const pagePath = this.getPagePathFromRequest(req)
+                log.info(`${req.method.toUpperCase()}: ${pagePath}`)
 
-            if (!fs.existsSync(page)) return res.status(404).end()
+                if (!fs.existsSync(pagePath)) return res.status(404).end()
 
-            const markup = await new Promise((resolve, reject) => {
-                fs.readFile(page, (err, markup) => {
-                    if (err) reject(err)
-                    resolve(markup)
-                })
-            })
-
-            return res.status(200).send(markup)
+                res.set('Content-Type', 'text/html; charset=UTF-8')
+                return res.status(200).sendFile(pagePath)
+            } catch (error: unknown) {
+                log.error(error, req.url)
+                return res.status(500).end()
+            }
         }
     }
 
-    buildRoutes() {
-        const handler = this.createPageHandler()
-        this.app.use('*', handler)
-    }
-
-    listen() {
-        this.app.listen(3000, () => {})
+    private exit() {
+        log.info('Exiting...')
+        process.exit(1)
     }
 }
 

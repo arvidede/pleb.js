@@ -13,14 +13,16 @@
         "moduleResolution": "Node",
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "noEmit": true,
-        "jsx": "react",
+        "noEmit": false,
+        "jsx": "react-jsx",
         "outDir": "dist",
         "baseUrl": "./src"
     },
     "exclude": ["/node_modules"],
     "include": ["./src"],
     "ts-node": {
-        "esm": true
+        "compilerOptions": {
+            "module": "CommonJS"
+        }
     }
 }

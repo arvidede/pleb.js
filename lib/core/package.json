@@ -1,28 +1,56 @@
 {
     "name": "pleb.js",
     "private": true,
-    "version": "0.0.0",
-    "main": "dist/index.js",
+    "version": "0.0.1",
+    "description": "A really shitty replacement for Next.js",
+    "author": "Arvid Edenheim",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/arvidede/pleb.js"
+    },
     "scripts": {
         "cli": "pleb-cli dev --help",
         "dev": "nodemon src/index.ts",
+        "dev:client": "vite --config vite.config.ts dev",
         "start": "node dist/index.js",
-        "build": "tsc"
+        "tsc": "tsc",
+        "build": "npm run build:client && npm run build:server",
+        "build:client": "vite build --outDir dist/client",
+        "build:server": "vite build --outDir dist/server --ssr src/render/server.tsx"
     },
     "dependencies": {
         "@types/express": "^4.17.13",
         "chalk": "4.1.2",
+        "compression": "^1.7.4",
         "express": "^4.18.1",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
     },
     "devDependencies": {
+        "@types/compression": "^1.7.2",
+        "@types/eslint": "^8.4.5",
         "@types/react": "^18.0.15",
         "@types/react-dom": "^18.0.6",
+        "@typescript-eslint/eslint-plugin": "^5.30.7",
+        "@typescript-eslint/parser": "^5.31.0",
+        "@vitejs/plugin-react": "^2.0.0",
+        "eslint": "^8.20.0",
+        "eslint-config-prettier": "^8.5.0",
+        "eslint-config-standard": "^17.0.0",
+        "eslint-plugin-import": "^2.26.0",
+        "eslint-plugin-jest": "^26.6",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-promise": "^6.0.0",
+        "eslint-plugin-react": "^7.30.1",
+        "eslint-plugin-react-hooks": "^4.6.0",
         "nodemon": "^2.0.19",
         "pleb-cli": "file:../cli",
+        "postcss": "^8.4.14",
+        "prettier": "^2.7.1",
         "ts-node": "^10.9.1",
         "tsc": "^2.0.4",
-        "typescript": "^4.6.4"
+        "typescript": "^4.6.4",
+        "vite": "^3.0.3"
     }
 }

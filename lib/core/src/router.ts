@@ -10,34 +10,33 @@ interface Options {
 
 export class Router {
     app!: Application
-    options!: Options
+    private options!: Options
     constructor(options: Options) {
         this.options = options
         this.createRouter()
         this.buildRoutes()
-        this.listen()
     }
 
-    get publicDir() {
+    private get publicDir() {
         return this.options.publicDir || path.join(__dirname, 'public')
     }
 
-    get port() {
+    private get port() {
         return this.options.port || 3000
     }
 
-    createRouter() {
+    private createRouter() {
         this.app = express()
     }
 
-    buildRoutes() {
+    private buildRoutes() {
         this.app.use(express.static(this.publicDir))
-        this.app.use('*', this.options.pageHandler)
+        // this.app.use('*', this.options.pageHandler)
     }
 
     listen() {
         this.app.listen(this.port, () => {
-            log.info(`Listening at ${this.port}`)
+            log.info(`Listening at http://localhost:${this.port}`)
         })
     }
 }

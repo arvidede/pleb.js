@@ -1,18 +1,24 @@
-const document = (children: string, hydrate: () => void) => {
+const document = (children: string) => {
     return `
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
             <head>
-                <script>
-                    window.onload = ${hydrate.toString()}
-                </script>
+                <meta charset="utf-8" />
+                <link rel="icon" href="/favicon.ico" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <meta name="theme-color" content="#000000" />
+                <meta name="description" content="Web site created using pleb" />
+                <link rel="apple-touch-icon" href="/logo192.png" />
+                <link rel="manifest" href="/manifest.json" />
+                <title>Pleb App</title>
             </head>
             <body>
-            <div id="__pleb">
-                ${children}
-            </div>
+                <div id="__pleb">
+                    ${children}
+                </div>
             </body>
             <script id="PLEB_DATA"></script>
+            <script type="module" src="/render/client.tsx"></script>
         </html>
     `
 }

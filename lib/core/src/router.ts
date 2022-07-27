@@ -1,9 +1,11 @@
 import express, { RequestHandler, Application } from 'express'
+import path from 'path'
 import * as log from './utils/log'
 
 interface Options {
     pageHandler: RequestHandler
     port?: number
+    publicDir?: string
 }
 
 export class Router {
@@ -16,6 +18,10 @@ export class Router {
         this.listen()
     }
 
+    get publicDir() {
+        return this.options.publicDir || path.join(__dirname, 'public')
+    }
+
     get port() {
         return this.options.port || 3000
     }
@@ -25,6 +31,7 @@ export class Router {
     }
 
     buildRoutes() {
+        this.app.use(express.static(this.publicDir))
         this.app.use('*', this.options.pageHandler)
     }
 

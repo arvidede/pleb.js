@@ -76,7 +76,7 @@ class Server {
     }
 
     private getPagePathFromRequest<T>(req: Request<T>) {
-        const url = new URL(req.url, 'http://localhost:3000')
+        const url = new URL(req.originalUrl, 'http://localhost:3000')
         if (url.pathname === '/') url.pathname = 'index'
         return path.join(this.buildDirectory, url.pathname + '.html')
     }

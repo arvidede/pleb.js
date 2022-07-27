@@ -61,6 +61,10 @@ class Server {
         let currentPage = 1
         const numPages = pages.length
 
+        const buildManifest = {
+            pages: [] as string[],
+        }
+
         log.info('Compiling pages...')
         for (const page of pages) {
             const pagePath = path.join(this.pageDirectory, page)
@@ -71,7 +75,12 @@ class Server {
                 path.join(this.buildDirectory, pageBuildExtension(page)),
                 markup
             )
+            buildManifest.pages.push(page.replace(/\..+/, ''))
         }
+        fs.writeFileSync(
+            path.resolve(this.buildDirectory, 'buildManifest.json'),
+            JSON.stringify(buildManifest)
+        )
         log.info(`Compiled ${currentPage - 1} pages.`)
     }
 

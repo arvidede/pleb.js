@@ -1,4 +1,4 @@
-import { Request, RequestHandler } from 'express'
+import { Request, Response, RequestHandler } from 'express'
 import fs from 'fs'
 import path from 'path'
 import getRouter, { Router } from './router'
@@ -15,6 +15,10 @@ interface Options {
     logLevel?: 'warn' | 'info'
 }
 
+interface BuildManifest {
+    pages: string[]
+}
+
 const DEFAULT_OPTIONS: Options = {
     buildDirectory: './.pleb',
     pagesDirectory: './examples',
@@ -25,6 +29,7 @@ class Server {
     router!: Router
     options!: Options
     vite!: ViteDevServer
+    buildManifest!: BuildManifest
 
     constructor(options: Options = DEFAULT_OPTIONS) {
         this.options = options
@@ -96,8 +101,8 @@ class Server {
         let currentPage = 1
         const numPages = pages.length
 
-        const buildManifest = {
-            pages: [] as string[],
+        const buildManifest: BuildManifest = {
+            pages: [],
         }
 
         log.info('Compiling pages...')
@@ -106,16 +111,19 @@ class Server {
             log.info(`- (${currentPage++}/${numPages}): ${pagePath}`)
             const jsx = require(pagePath)
             const markup = render(jsx.default)
+            const pageWithExtension = pageBuildExtension(page)
             fs.writeFileSync(
-                path.resolve(this.buildDirectory, pageBuildExtension(page)),
+                path.resolve(this.buildDirectory, pageWithExtension),
                 markup
             )
-            buildManifest.pages.push(page.replace(/\..+/, ''))
+            buildManifest.pages.push(pageWithExtension)
         }
         fs.writeFileSync(
             path.resolve(this.buildDirectory, 'buildManifest.json'),
             JSON.stringify(buildManifest)
         )
+
+        this.buildManifest = buildManifest
         log.info(`Compiled ${currentPage - 1} pages.`)
     }
 
@@ -123,6 +131,28 @@ class Server {
         const url = new URL(req.originalUrl, 'http://localhost:3000')
         if (url.pathname === '/') url.pathname = 'index'
         return path.join(this.buildDirectory, url.pathname + '.html')
+    }
+
+    private async serveStaticPage(req: Request, res: Response) {
+        const pagePath = this.getPagePathFromRequest(req)
+        let template = fs.readFileSync(pagePath, 'utf-8')
+        template = await this.vite.transformIndexHtml(req.originalUrl, template)
+
+        return res
+            .status(200)
+            .set('Content-Type', 'text/html; charset=UTF-8')
+            .end(template)
+    }
+
+    private async serveDynamicPage(req: Request, res: Response) {
+        const pagePath = this.getPagePathFromRequest(req)
+        let template = fs.readFileSync(pagePath, 'utf-8')
+        template = await this.vite.transformIndexHtml(req.originalUrl, template)
+
+        return res
+            .status(200)
+            .set('Content-Type', 'text/html; charset=UTF-8')
+            .end(template)
     }
 
     private createPageHandler(): RequestHandler {
@@ -137,16 +167,11 @@ class Server {
 
                 if (!fs.existsSync(pagePath)) return res.status(404).end()
 
-                let template = fs.readFileSync(pagePath, 'utf-8')
-                template = await this.vite.transformIndexHtml(
-                    req.originalUrl,
-                    template
-                )
+                const handler = this.buildManifest.pages.includes(pagePath)
+                    ? this.serveStaticPage
+                    : this.serveDynamicPage
 
-                return res
-                    .status(200)
-                    .set('Content-Type', 'text/html; charset=UTF-8')
-                    .end(template)
+                return handler(req, res)
             } catch (error: unknown) {
                 log.error(error, req.url)
                 return res.status(500).end()

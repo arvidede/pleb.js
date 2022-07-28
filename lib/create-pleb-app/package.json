@@ -1,0 +1,35 @@
+{
+    "name": "create-pleb-app",
+    "version": "0.0.1",
+    "keywords": [
+        "react",
+        "pleb",
+        "pleb.js"
+    ],
+    "description": "Create pleb apps with a simple command",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/arvidede/pleb.js",
+        "directory": "packages/create-pleb-app"
+    },
+    "author": "Arvid Edenheim",
+    "license": "MIT",
+    "bin": {
+        "create-next-app": "./dist/index.js"
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "dev": "",
+        "build": ""
+    },
+    "devDependencies": {
+        "@types/node": "^12.6.8",
+        "chalk": "2.4.2",
+        "commander": "2.20.0"
+    },
+    "engines": {
+        "node": ">=12.22.0"
+    }
+}

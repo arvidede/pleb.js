@@ -18,7 +18,7 @@ export class Router {
     }
 
     private get publicDir() {
-        return this.options.publicDir || path.join(__dirname, 'public')
+        return this.options.publicDir || path.join(process.cwd(), 'public')
     }
 
     private get port() {

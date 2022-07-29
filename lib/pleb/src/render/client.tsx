@@ -1,10 +1,15 @@
-import React from 'react'
+import React, { FC, ReactElement } from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
-import App from '../pages/App'
-import Component from '../examples/'
+import AppTemplate from '../pages/App'
+import Document from '../pages/Document'
+
+const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
+    children,
+}) => {
+    return <AppTemplate>{children}</AppTemplate>
+}
 
 const main = () => {
-    // const Page = lazy(() => import('pages' + window.location.pathname))
     const ROOT_NODE = '#__pleb'
 
     const rootNode = document.querySelector(ROOT_NODE)
@@ -14,21 +19,18 @@ const main = () => {
         return
     }
 
+    const App = (
+        <Document>
+            <ServerContext>{}</ServerContext>
+        </Document>
+    )
+
     // @ts-ignore
     if (import.meta.hot) {
         const root = createRoot(rootNode)
-        root.render(
-            <App>
-                <Component />
-            </App>
-        )
+        root.render(App)
     } else {
-        hydrateRoot(
-            rootNode,
-            <App>
-                <Component />
-            </App>
-        )
+        hydrateRoot(rootNode, App)
     }
 }
 

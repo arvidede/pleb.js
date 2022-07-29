@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
+        "random": "pleb dev",
         "dev": "pleb dev",
         "build": "pleb build",
         "start": "pleb start",

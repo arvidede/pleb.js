@@ -8,4 +8,7 @@ export default defineConfig({
         minify: false,
     },
     root: '',
+    ssr: {
+        noExternal: ['tsc'],
+    },
 })

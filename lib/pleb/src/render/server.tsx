@@ -1,7 +1,7 @@
-import { FC, ReactElement } from 'react'
+import React, { FC, ReactElement } from 'react'
 import ReactDOMServer from 'react-dom/server'
 import App from '../pages/App'
-import document from '../pages/document'
+import Document from '../pages/Document'
 
 const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
     children,
@@ -11,10 +11,12 @@ const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
 
 export const render = (Page: any) => {
     const App = (
-        <ServerContext>
-            <Page />
-        </ServerContext>
+        <Document>
+            <ServerContext>
+                <Page />
+            </ServerContext>
+        </Document>
     )
 
-    return document(ReactDOMServer.renderToString(App))
+    return ReactDOMServer.renderToString(App)
 }

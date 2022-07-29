@@ -11,4 +11,9 @@ export default defineConfig({
     ssr: {
         noExternal: ['tsc'],
     },
+    resolve: {
+        alias: {
+            'react/jsx-runtime': 'react/jsx-runtime.js',
+        },
+    },
 })

@@ -1,7 +1,7 @@
-import React, { FC, ReactElement } from 'react'
+import { FC, ReactElement } from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
-import AppTemplate from '../pages/App'
-import Document from '../pages/Document'
+import AppTemplate from './pages/App'
+import Document from './pages/Document'
 
 const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
     children,

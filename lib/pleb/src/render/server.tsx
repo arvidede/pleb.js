@@ -1,4 +1,4 @@
-import React, { FC, ReactElement } from 'react'
+import { FC, ReactElement } from 'react'
 import ReactDOMServer from 'react-dom/server'
 import App from '../pages/App'
 import Document from '../pages/Document'

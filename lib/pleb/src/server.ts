@@ -49,7 +49,7 @@ class Server {
 
     private async setupVite() {
         this.vite = await createViteServer({
-            root: __dirname,
+            root: path.resolve(__dirname, '..'),
             logLevel: this.options.logLevel,
             server: {
                 middlewareMode: true,

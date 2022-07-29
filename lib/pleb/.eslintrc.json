@@ -5,7 +5,12 @@
         "es2021": true,
         "jest/globals": true
     },
-    "extends": ["plugin:react/recommended", "prettier", "eslint:recommended"],
+    "extends": [
+        "eslint:recommended",
+        "plugin:node/recommended",
+        "plugin:react/recommended",
+        "plugin:@typescript-eslint/recommended'"
+    ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaFeatures": {
@@ -17,8 +22,8 @@
     "plugins": ["jest", "react", "@typescript-eslint", "react-hooks"],
     "rules": {
         "no-use-before-define": "off",
-        "no-unused-vars": "off",
         "@typescript-eslint/no-use-before-define": ["error"],
+        "no-unused-vars": "off",
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "warn"
     }

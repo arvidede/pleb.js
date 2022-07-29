@@ -1,4 +1,4 @@
-import React, { FC, ReactElement } from 'react'
+import { FC, ReactElement } from 'react'
 
 interface Props {
     children: ReactElement | ReactElement[]
@@ -27,7 +27,7 @@ const Document: FC<Props> = ({ children }) => {
                 <div id="__pleb">{children}</div>
             </body>
             <script id="PLEB_DATA"></script>
-            <script type="module" src="/render/client.js"></script>
+            <script type="module" src="/client.js"></script>
         </html>
     )
 }

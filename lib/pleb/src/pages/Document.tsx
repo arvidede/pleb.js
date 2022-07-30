@@ -1,11 +1,18 @@
-import { FC, ReactElement } from 'react'
-
+import { FC, lazy, Suspense } from 'react'
+import App from './App'
+import { __clientDir } from '../constants'
 interface Props {
     pagePath: string
-    children: ReactElement | ReactElement[]
 }
 
-const Document: FC<Props> = ({ children, pagePath }) => {
+const routes: Record<string, any> = {
+    '/': lazy(() => import(`${__clientDir}/pages/index.tsx`)),
+}
+
+const Document: FC<Props> = ({ pagePath }) => {
+    const Component = routes[pagePath]
+    console.log('Getting component for path', pagePath)
+    console.log('Component', Component)
     return (
         <html lang="en">
             <head>
@@ -27,7 +34,13 @@ const Document: FC<Props> = ({ children, pagePath }) => {
                 <title>Pleb App</title>
             </head>
             <body>
-                <div id="__pleb">{children}</div>
+                <div id="__pleb">
+                    <Suspense>
+                        <App>
+                            <Component />
+                        </App>
+                    </Suspense>
+                </div>
                 <script id="PLEB_DATA"></script>
             </body>
         </html>

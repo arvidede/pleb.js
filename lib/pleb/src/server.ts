@@ -4,7 +4,7 @@ import path from 'path'
 import getRouter, { Router } from './router'
 import { render } from './render/server'
 import * as log from './utils/log'
-import { pageBuildExtension } from './utils/files'
+import { filePathToSlug, fileExtensionToHTML } from './utils/files'
 import { createServer as createViteServer, ViteDevServer } from 'vite'
 import compression from 'compression'
 import { __clientDir, __dirname } from './constants'
@@ -97,11 +97,6 @@ class Server {
         fs.mkdirSync(this.buildDirectory)
     }
 
-    getSlugFromPath(path: string) {
-        if (path.startsWith('index')) return '/'
-        return `/${path.replace(/.(jsx|js|tsx|ts)/, '')}`
-    }
-
     async buildStaticPages() {
         if (!fs.existsSync(this.pageDirectory)) {
             log.warn(`No 'pages' directory found at ${this.pageDirectory}`)
@@ -125,20 +120,15 @@ class Server {
         for (const page of pages) {
             const pagePath = path.resolve(this.pageDirectory, page)
             log.info(`- (${currentPage++}/${numPages}): ${pagePath}`)
-            const jsx = await import(pagePath)
-            const markup = render(
-                jsx.default,
-                path.resolve(this.buildDirectory, page)
+            const slug = filePathToSlug(page)
+            const htmlPage = fileExtensionToHTML(page)
+            const outFile = fs.createWriteStream(
+                path.resolve(this.buildDirectory, htmlPage)
             )
-            const pageWithExtension = pageBuildExtension(page)
-            fs.writeFileSync(
-                path.resolve(this.buildDirectory, pageWithExtension),
-                markup
-            )
+            render(slug).pipe(outFile)
             fs.copyFileSync(pagePath, path.resolve(this.buildDirectory, page))
-            const slug = this.getSlugFromPath(page)
             buildManifest.pages[slug] = {
-                markup: pageWithExtension,
+                markup: htmlPage,
                 script: page,
             }
         }
@@ -159,10 +149,8 @@ class Server {
         const url = new URL(req.originalUrl, this.host)
         const slug = url.pathname
         if (url.pathname === '/') url.pathname = 'index'
-        return {
-            slug,
-            pagePath: path.join(this.buildDirectory, url.pathname + '.html'),
-        }
+        const pagePath = path.join(this.buildDirectory, url.pathname + '.html')
+        return { slug, pagePath }
     }
 
     private serveStaticPage = async (req: Request, res: Response) => {
@@ -223,18 +211,17 @@ class Server {
 
     private devPageHandler = async (req: Request, res: Response) => {
         try {
-            const { page, script } = this.getDevPagePathFromRequest(req)
+            const { page } = this.getDevPagePathFromRequest(req)
             log.info(`${req.method.toUpperCase()}: ${page} ${req.originalUrl}`)
-
             if (!fs.existsSync(page)) return res.status(404).end()
+            // const markup = render(page)
 
-            const jsx = await this.vite.ssrLoadModule(page)
-            const markup = render(jsx.default, script)
+            // const transformedMarkup = await this.vite.transformIndexHtml(
+            //     req.originalUrl,
+            //     markup
+            // )
 
-            const transformedMarkup = await this.vite.transformIndexHtml(
-                req.originalUrl,
-                markup
-            )
+            const transformedMarkup = '<div></div>'
 
             return res
                 .status(200)

@@ -7,8 +7,8 @@ import * as log from './utils/log'
 import { pageBuildExtension } from './utils/files'
 import { createServer as createViteServer, ViteDevServer } from 'vite'
 import compression from 'compression'
-import hydrate from './client'
 import { __clientDir, __dirname } from './constants'
+import type { BuildManifest } from '../types'
 
 interface Options {
     buildDirectory: string
@@ -18,10 +18,6 @@ interface Options {
 }
 
 export type ServerOptions = Partial<Options>
-
-interface BuildManifest {
-    pages: string[]
-}
 
 const DEFAULT_OPTIONS: Options = {
     buildDirectory: './.pleb',
@@ -101,6 +97,11 @@ class Server {
         fs.mkdirSync(this.buildDirectory)
     }
 
+    getSlugFromPath(path: string) {
+        if (path.startsWith('index')) return '/'
+        return `/${path.replace(/.(jsx|js|tsx|ts)/, '')}`
+    }
+
     async buildStaticPages() {
         if (!fs.existsSync(this.pageDirectory)) {
             log.warn(`No 'pages' directory found at ${this.pageDirectory}`)
@@ -117,14 +118,14 @@ class Server {
         const numPages = pages.length
 
         const buildManifest: BuildManifest = {
-            pages: [],
+            pages: {},
         }
 
         log.info('Compiling pages...')
         for (const page of pages) {
             const pagePath = path.resolve(this.pageDirectory, page)
             log.info(`- (${currentPage++}/${numPages}): ${pagePath}`)
-            const jsx = await this.vite.ssrLoadModule(pagePath)
+            const jsx = await import(pagePath)
             const markup = render(
                 jsx.default,
                 path.resolve(this.buildDirectory, page)
@@ -134,12 +135,12 @@ class Server {
                 path.resolve(this.buildDirectory, pageWithExtension),
                 markup
             )
-
-            fs.writeFileSync(
-                path.resolve(this.buildDirectory, page),
-                hydrate(jsx.default)
-            )
-            buildManifest.pages.push(pageWithExtension)
+            fs.copyFileSync(pagePath, path.resolve(this.buildDirectory, page))
+            const slug = this.getSlugFromPath(page)
+            buildManifest.pages[slug] = {
+                markup: pageWithExtension,
+                script: page,
+            }
         }
         fs.writeFileSync(
             path.resolve(this.buildDirectory, 'buildManifest.json'),
@@ -156,12 +157,16 @@ class Server {
 
     private getPagePathFromRequest<T>(req: Request<T>) {
         const url = new URL(req.originalUrl, this.host)
+        const slug = url.pathname
         if (url.pathname === '/') url.pathname = 'index'
-        return path.join(this.buildDirectory, url.pathname + '.html')
+        return {
+            slug,
+            pagePath: path.join(this.buildDirectory, url.pathname + '.html'),
+        }
     }
 
     private serveStaticPage = async (req: Request, res: Response) => {
-        const pagePath = this.getPagePathFromRequest(req)
+        const { pagePath } = this.getPagePathFromRequest(req)
         let template = fs.readFileSync(pagePath, 'utf-8')
         template = await this.vite.transformIndexHtml(req.originalUrl, template)
 
@@ -172,7 +177,7 @@ class Server {
     }
 
     private serveDynamicPage = async (req: Request, res: Response) => {
-        const pagePath = this.getPagePathFromRequest(req)
+        const { pagePath } = this.getPagePathFromRequest(req)
         let template = fs.readFileSync(pagePath, 'utf-8')
         template = await this.vite.transformIndexHtml(req.originalUrl, template)
 
@@ -182,16 +187,20 @@ class Server {
             .end(template)
     }
 
+    private hasBeenGenerated(slug: string): boolean {
+        return slug in this.buildManifest.pages
+    }
+
     private pageHandler = (req: Request, res: Response) => {
         try {
-            const pagePath = this.getPagePathFromRequest(req)
+            const { slug, pagePath } = this.getPagePathFromRequest(req)
             log.info(
                 `${req.method.toUpperCase()}: ${pagePath} ${req.originalUrl}`
             )
 
             if (!fs.existsSync(pagePath)) return res.status(404).end()
 
-            const handler = this.buildManifest.pages.includes(pagePath)
+            const handler = this.hasBeenGenerated(slug)
                 ? this.serveStaticPage
                 : this.serveDynamicPage
 

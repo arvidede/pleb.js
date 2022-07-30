@@ -6,17 +6,17 @@ import Document from '../pages/Document'
 const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
     children,
 }) => {
-    return <App>{children}</App>
+    return <>{children}</>
 }
 
 export const render = (Page: any, pagePath: string) => {
-    const App = (
+    return ReactDOMServer.renderToString(
         <Document pagePath={pagePath}>
             <ServerContext>
-                <Page />
+                <App>
+                    <Page />
+                </App>
             </ServerContext>
         </Document>
     )
-
-    return ReactDOMServer.renderToString(App)
 }

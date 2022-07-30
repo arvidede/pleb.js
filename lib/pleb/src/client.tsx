@@ -1,26 +1,38 @@
 import { createRoot, hydrateRoot } from 'react-dom/client'
 import AppTemplate from './pages/App'
+import type { BuildManifest } from '../types'
+;(async () => {
+    const ROOT_NODE = '#__pleb'
+    // @ts-ignore
+    const modules = import.meta.glob('./buildManifest.json')
+    const buildManifest: BuildManifest = (
+        await modules['./buildManifest.json']()
+    ).default
+    const slug = document.location.pathname
+    const pagePath = buildManifest.pages[slug]
 
-const App = (component: any) => <AppTemplate>{component}</AppTemplate>
-
-export default (component: any) => {
-    return `
-    (() => {
-        const ROOT_NODE = '#__pleb'
+    if (pagePath) {
+        const Component = (
+            await import(/* @vite-ignore */ `./${pagePath.script}`)
+        ).default
+        const App = (
+            <AppTemplate>
+                <Component />
+            </AppTemplate>
+        )
 
         const rootNode = document.querySelector(ROOT_NODE)
 
-        if (!rootNode) {
-            console.error('Could not find root node', ROOT_NODE)
-            return
-        }
-        
-        if (import.meta.hot) {
-            const root = ${createRoot}(rootNode)
-            root.render(App)
+        if (rootNode) {
+            // @ts-ignore
+            if (import.meta.hot) {
+                const root = createRoot(rootNode)
+                root.render(App)
+            } else {
+                hydrateRoot(rootNode, App)
+            }
         } else {
-            ${hydrateRoot}(rootNode, ${App(component)})
+            console.error('Could not find root node', ROOT_NODE)
         }
-        console.log('HYDRATE')
-    })()`
-}
+    }
+})()

@@ -1,5 +1,6 @@
 import express, { RequestHandler, Application } from 'express'
 import path from 'path'
+import { __clientDir } from './constants'
 import * as log from './utils/log'
 
 interface Options {
@@ -18,7 +19,7 @@ export class Router {
     }
 
     private get publicDir() {
-        return this.options.publicDir || path.join(process.cwd(), 'public')
+        return this.options.publicDir || path.resolve(__clientDir, 'public')
     }
 
     private get port() {

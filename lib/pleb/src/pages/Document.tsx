@@ -1,10 +1,11 @@
 import { FC, ReactElement } from 'react'
 
 interface Props {
+    pagePath: string
     children: ReactElement | ReactElement[]
 }
 
-const Document: FC<Props> = ({ children }) => {
+const Document: FC<Props> = ({ children, pagePath }) => {
     return (
         <html lang="en">
             <head>
@@ -21,13 +22,14 @@ const Document: FC<Props> = ({ children }) => {
                 />
                 <link rel="apple-touch-icon" href="/logo192.png" />
                 <link rel="manifest" href="/manifest.json" />
+                <script type="module" src="/client.js"></script>
+                <script type="module" src={pagePath}></script>
                 <title>Pleb App</title>
             </head>
             <body>
                 <div id="__pleb">{children}</div>
+                <script id="PLEB_DATA"></script>
             </body>
-            <script id="PLEB_DATA"></script>
-            <script type="module" src="/client.js"></script>
         </html>
     )
 }

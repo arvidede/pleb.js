@@ -9,9 +9,9 @@ const ServerContext: FC<{ children: ReactElement | ReactElement[] }> = ({
     return <App>{children}</App>
 }
 
-export const render = (Page: any) => {
+export const render = (Page: any, pagePath: string) => {
     const App = (
-        <Document>
+        <Document pagePath={pagePath}>
             <ServerContext>
                 <Page />
             </ServerContext>

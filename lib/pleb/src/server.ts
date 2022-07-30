@@ -7,10 +7,8 @@ import * as log from './utils/log'
 import { pageBuildExtension } from './utils/files'
 import { createServer as createViteServer, ViteDevServer } from 'vite'
 import compression from 'compression'
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import hydrate from './client'
+import { __clientDir, __dirname } from './constants'
 
 interface Options {
     buildDirectory: string
@@ -43,13 +41,13 @@ class Server {
     }
 
     async init() {
-        // this.buildStaticPages()
-        this.setupRouter()
+        await this.setupRouter()
+        this.buildStaticPages()
     }
 
     private async setupVite() {
         this.vite = await createViteServer({
-            root: path.resolve(__dirname, '..'),
+            root: this.buildDirectory,
             logLevel: this.options.logLevel,
             server: {
                 middlewareMode: true,
@@ -81,11 +79,11 @@ class Server {
     }
 
     get pageDirectory() {
-        return path.resolve(process.cwd(), this.options.pagesDirectory)
+        return path.resolve(__clientDir, this.options.pagesDirectory)
     }
 
     get buildDirectory() {
-        return path.resolve(process.cwd(), this.options.buildDirectory)
+        return path.resolve(__clientDir, this.options.buildDirectory)
     }
 
     private get host() {
@@ -111,7 +109,9 @@ class Server {
 
         this.createBuildDirectory()
 
-        const pages = fs.readdirSync(this.pageDirectory)
+        const pages = fs
+            .readdirSync(this.pageDirectory)
+            .filter((page) => !/_app.tsx|api/.test(page))
 
         let currentPage = 1
         const numPages = pages.length
@@ -124,18 +124,30 @@ class Server {
         for (const page of pages) {
             const pagePath = path.resolve(this.pageDirectory, page)
             log.info(`- (${currentPage++}/${numPages}): ${pagePath}`)
-            const jsx = require(pagePath)
-            const markup = render(jsx.default)
+            const jsx = await this.vite.ssrLoadModule(pagePath)
+            const markup = render(
+                jsx.default,
+                path.resolve(this.buildDirectory, page)
+            )
             const pageWithExtension = pageBuildExtension(page)
             fs.writeFileSync(
                 path.resolve(this.buildDirectory, pageWithExtension),
                 markup
+            )
+
+            fs.writeFileSync(
+                path.resolve(this.buildDirectory, page),
+                hydrate(jsx.default)
             )
             buildManifest.pages.push(pageWithExtension)
         }
         fs.writeFileSync(
             path.resolve(this.buildDirectory, 'buildManifest.json'),
             JSON.stringify(buildManifest)
+        )
+        fs.copyFileSync(
+            path.resolve(__dirname, 'client.js'),
+            path.resolve(this.buildDirectory, 'client.js')
         )
 
         this.buildManifest = buildManifest
@@ -193,23 +205,22 @@ class Server {
     private getDevPagePathFromRequest = (req: Request) => {
         const url = new URL(req.originalUrl, this.host)
         if (url.pathname === '/') url.pathname = 'index'
-        return path.join(this.pageDirectory, url.pathname + '.tsx')
+        const file = url.pathname + '.tsx'
+        return {
+            page: path.join(this.pageDirectory, file),
+            script: path.join(this.buildDirectory, file),
+        }
     }
 
     private devPageHandler = async (req: Request, res: Response) => {
         try {
-            const pagePath = this.getDevPagePathFromRequest(req)
-            log.info(
-                `${req.method.toUpperCase()}: ${pagePath} ${req.originalUrl}`
-            )
+            const { page, script } = this.getDevPagePathFromRequest(req)
+            log.info(`${req.method.toUpperCase()}: ${page} ${req.originalUrl}`)
 
-            if (!fs.existsSync(pagePath)) return res.status(404).end()
+            if (!fs.existsSync(page)) return res.status(404).end()
 
-            const page = await this.vite.ssrLoadModule(
-                path.resolve(this.pageDirectory, pagePath)
-            )
-
-            const markup = render(page.default)
+            const jsx = await this.vite.ssrLoadModule(page)
+            const markup = render(jsx.default, script)
 
             const transformedMarkup = await this.vite.transformIndexHtml(
                 req.originalUrl,

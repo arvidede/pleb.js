@@ -9,6 +9,7 @@ import { createServer as createViteServer, ViteDevServer } from 'vite'
 import compression from 'compression'
 import { __clientDir, __dirname } from './constants'
 import type { BuildManifest } from '../types'
+import esbuild from 'esbuild'
 
 interface Options {
     buildDirectory: string
@@ -97,6 +98,20 @@ class Server {
         fs.mkdirSync(this.buildDirectory)
     }
 
+    async compilePage(path: string, file: string) {
+        return esbuild
+            .build({
+                entryPoints: [path],
+                bundle: true,
+                outfile: `${this.buildDirectory}/${file.replace('tsx', 'mjs')}`,
+                tsconfig: __dirname + '/tsconfig.json',
+                jsx: 'automatic',
+                format: 'esm',
+                platform: 'node',
+            })
+            .catch(log.error)
+    }
+
     async buildStaticPages() {
         if (!fs.existsSync(this.pageDirectory)) {
             log.warn(`No 'pages' directory found at ${this.pageDirectory}`)
@@ -115,17 +130,26 @@ class Server {
         const buildManifest: BuildManifest = {
             pages: {},
         }
-
+        const buildDirectory = this.buildDirectory
         log.info('Compiling pages...')
         for (const page of pages) {
             const pagePath = path.resolve(this.pageDirectory, page)
             log.info(`- (${currentPage++}/${numPages}): ${pagePath}`)
             const slug = filePathToSlug(page)
             const htmlPage = fileExtensionToHTML(page)
-            const outFile = fs.createWriteStream(
-                path.resolve(this.buildDirectory, htmlPage)
-            )
-            render(slug).pipe(outFile)
+
+            await this.compilePage(pagePath, page)
+
+            const renderStream = render(page, {
+                onShellError: log.error,
+                onError: log.error,
+                onAllReady() {
+                    const outFile = fs.createWriteStream(
+                        path.resolve(buildDirectory, htmlPage)
+                    )
+                    renderStream.pipe(outFile)
+                },
+            })
             fs.copyFileSync(pagePath, path.resolve(this.buildDirectory, page))
             buildManifest.pages[slug] = {
                 markup: htmlPage,
@@ -214,19 +238,37 @@ class Server {
             const { page } = this.getDevPagePathFromRequest(req)
             log.info(`${req.method.toUpperCase()}: ${page} ${req.originalUrl}`)
             if (!fs.existsSync(page)) return res.status(404).end()
-            // const markup = render(page)
+
+            // const renderStream = render(page, {
+            //     onShellReady() {
+            //         res.statusCode = 200
+            //         res.setHeader('Content-type', 'text/html; charset=UTF-8')
+            //         renderStream.pipe(res)
+            //     },
+            //     onShellError(error) {
+            //         log.error(error)
+            //         res.statusCode = 500
+            //         res.send('<!doctype html><p>Loading...</p>')
+            //     },
+            //     onAllReady() {
+            //         res.statusCode = 200
+            //         res.setHeader('Content-type', 'text/html; charset=UTF-8')
+            //         renderStream.pipe(res)
+            //     },
+            //     onError(err) {
+            //         console.error(err)
+            //     },
+            // })
 
             // const transformedMarkup = await this.vite.transformIndexHtml(
             //     req.originalUrl,
             //     markup
             // )
 
-            const transformedMarkup = '<div></div>'
-
             return res
                 .status(200)
                 .set('Content-Type', 'text/html; charset=UTF-8')
-                .end(transformedMarkup)
+                .sendFile(__clientDir + '/.pleb/index.html')
         } catch (error: unknown) {
             log.error(error, req.url)
             return res.status(500).end()

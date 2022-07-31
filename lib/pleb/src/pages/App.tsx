@@ -1,11 +1,23 @@
-import { FC, ReactElement } from 'react'
+import { FC, lazy, ReactElement } from 'react'
+import { __clientDir } from 'src/constants'
 
 interface Props {
-    children: ReactElement | ReactElement[]
+    children?: ReactElement | ReactElement[]
+    pagePath: string
 }
 
-const App: FC<Props> = ({ children }) => {
-    return <div>{children}</div>
+const routes: Record<string, any> = {
+    'index.tsx': lazy(
+        () => import(/* @vite-ignore */ `${__clientDir}/.pleb/index.mjs`)
+    ),
+    '/': lazy(
+        () => import(/* @vite-ignore */ `${__clientDir}/.pleb/index.mjs`)
+    ),
+}
+
+const App: FC<Props> = ({ children, pagePath }) => {
+    const Component = routes[pagePath]
+    return <Component />
 }
 
 export default App

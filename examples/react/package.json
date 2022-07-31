@@ -10,7 +10,7 @@
         "lint": "pleb lint"
     },
     "dependencies": {
-        "pleb": "file:../../lib/pleb",
+        "pleb": "file:../../lib/pleb/dist",
         "react": "18.2.0",
         "react-dom": "18.2.0"
     },

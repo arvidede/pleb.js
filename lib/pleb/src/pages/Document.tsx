@@ -1,18 +1,11 @@
-import { FC, lazy, Suspense } from 'react'
+import { FC, Suspense } from 'react'
 import App from './App'
 import { __clientDir } from '../constants'
 interface Props {
     pagePath: string
 }
 
-const routes: Record<string, any> = {
-    '/': lazy(() => import(`${__clientDir}/pages/index.tsx`)),
-}
-
 const Document: FC<Props> = ({ pagePath }) => {
-    const Component = routes[pagePath]
-    console.log('Getting component for path', pagePath)
-    console.log('Component', Component)
     return (
         <html lang="en">
             <head>
@@ -36,9 +29,7 @@ const Document: FC<Props> = ({ pagePath }) => {
             <body>
                 <div id="__pleb">
                     <Suspense>
-                        <App>
-                            <Component />
-                        </App>
+                        <App pagePath={pagePath} />
                     </Suspense>
                 </div>
                 <script id="PLEB_DATA"></script>

@@ -7,12 +7,8 @@ interface Props {
 }
 
 const routes: Record<string, any> = {
-    'index.tsx': lazy(
-        () => import(/* @vite-ignore */ `${__clientDir}/.pleb/index.mjs`)
-    ),
-    '/': lazy(
-        () => import(/* @vite-ignore */ `${__clientDir}/.pleb/index.mjs`)
-    ),
+    'index.tsx': lazy(() => import(`${__clientDir}/.pleb/index.mjs`)),
+    '/': lazy(() => import(`${__clientDir}/.pleb/index.mjs`)),
 }
 
 const App: FC<Props> = ({ children, pagePath }) => {

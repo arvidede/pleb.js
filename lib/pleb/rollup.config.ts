@@ -9,10 +9,9 @@ import { defineConfig } from 'rollup'
 const plugins = [json(), typescript(), commonjs(), resolve()]
 
 const external = [
-    'fs',
-    'path',
     'url',
     'react',
+    'esbuild',
     'react/jsx-runtime',
     'react-dom/server',
 ]

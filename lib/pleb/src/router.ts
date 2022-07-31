@@ -19,7 +19,7 @@ export class Router {
     }
 
     private get publicDir() {
-        return this.options.publicDir || path.resolve(__clientDir, 'public')
+        return this.options.publicDir || path.resolve(__clientDir, '.pleb')
     }
 
     private get port() {

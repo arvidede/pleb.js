@@ -143,6 +143,15 @@ class Server {
             path.resolve(this.buildDirectory, 'client.js')
         )
 
+        const publicDir = path.join(__clientDir, '/public')
+        console.log(publicDir)
+        fs.readdirSync(publicDir).forEach((file) => {
+            fs.copyFileSync(
+                path.resolve(publicDir, file),
+                path.resolve(this.buildDirectory, file)
+            )
+        })
+
         this.buildManifest = buildManifest
         log.info(`Compiled ${currentPage - 1} pages.`)
     }

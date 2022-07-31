@@ -5,7 +5,6 @@ import getRouter, { Router } from './router'
 import { render } from './render/server'
 import * as log from './utils/log'
 import { filePathToSlug, fileExtensionToHTML } from './utils/files'
-import { createServer as createViteServer, ViteDevServer } from 'vite'
 import compression from 'compression'
 import { __clientDir, __dirname } from './constants'
 import type { BuildManifest } from '../types'
@@ -29,7 +28,6 @@ const DEFAULT_OPTIONS: Options = {
 class Server {
     router!: Router
     options!: Options
-    vite!: ViteDevServer
     buildManifest!: BuildManifest
 
     constructor(options?: ServerOptions) {
@@ -42,24 +40,6 @@ class Server {
         this.buildStaticPages()
     }
 
-    private async setupVite() {
-        this.vite = await createViteServer({
-            root: this.buildDirectory,
-            logLevel: this.options.logLevel,
-            server: {
-                middlewareMode: true,
-                watch: {
-                    usePolling: true,
-                    interval: 100,
-                },
-                hmr: {
-                    port: undefined,
-                },
-            },
-            appType: 'custom',
-        })
-    }
-
     private async setupRouter() {
         this.router = getRouter(this.pageHandler)
 
@@ -67,8 +47,6 @@ class Server {
             this.router.app.use(compression)
             this.router.app.use('*', this.pageHandler)
         } else {
-            await this.setupVite()
-            this.router.app.use(this.vite.middlewares)
             this.router.app.use('*', this.devPageHandler)
         }
 
@@ -180,7 +158,6 @@ class Server {
     private serveStaticPage = async (req: Request, res: Response) => {
         const { pagePath } = this.getPagePathFromRequest(req)
         let template = fs.readFileSync(pagePath, 'utf-8')
-        template = await this.vite.transformIndexHtml(req.originalUrl, template)
 
         return res
             .status(200)
@@ -191,7 +168,6 @@ class Server {
     private serveDynamicPage = async (req: Request, res: Response) => {
         const { pagePath } = this.getPagePathFromRequest(req)
         let template = fs.readFileSync(pagePath, 'utf-8')
-        template = await this.vite.transformIndexHtml(req.originalUrl, template)
 
         return res
             .status(200)

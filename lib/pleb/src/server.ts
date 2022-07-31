@@ -9,6 +9,9 @@ import compression from 'compression'
 import { __clientDir, __dirname } from './constants'
 import type { BuildManifest } from '../types'
 import esbuild from 'esbuild'
+import Webpack from 'webpack'
+import WebpackDevServer from 'webpack-dev-server'
+import webpackConfig from '../webpack.config.js'
 
 interface Options {
     buildDirectory: string
@@ -51,6 +54,13 @@ class Server {
         }
 
         this.router.listen()
+    }
+
+    startDevServer() {
+        const compiler = Webpack(webpackConfig)
+        const devServerOptions = { ...webpackConfig.devServer, open: true }
+        const server = new WebpackDevServer(devServerOptions, compiler)
+        server.start()
     }
 
     get pageDirectory() {

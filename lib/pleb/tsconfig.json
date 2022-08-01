@@ -4,6 +4,9 @@
         "alwaysStrict": true,
         "allowSyntheticDefaultImports": true,
         "baseUrl": ".",
+        "rootDir": "src",
+        "outDir": "dist",
+        "declaration": true,
         "declarationMap": false,
         "noImplicitOverride": true,
         "esModuleInterop": true,
@@ -21,6 +24,6 @@
         "skipLibCheck": true,
         "sourceMap": false
     },
-    "exclude": ["/node_modules"],
-    "include": ["**/*.ts", "types"]
+    "exclude": ["/node_modulsrc"],
+    "include": ["src/**/*"]
 }

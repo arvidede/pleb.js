@@ -1,5 +1,5 @@
 import { FC, lazy, ReactElement } from 'react'
-import { __clientDir } from 'src/constants'
+import { __clientDir } from '../constants'
 
 interface Props {
     children?: ReactElement | ReactElement[]

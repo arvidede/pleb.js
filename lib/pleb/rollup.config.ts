@@ -4,14 +4,17 @@ import typescript from 'rollup-plugin-typescript2'
 import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
-import { defineConfig } from 'rollup'
+import { defineConfig, Plugin } from 'rollup'
 
-const plugins = [json(), typescript(), commonjs(), resolve()]
+const plugins = [json(), typescript(), commonjs(), resolve()] as Plugin[]
 
 const external = [
     'url',
     'react',
     'esbuild',
+    'fsevents',
+    'events',
+    'string_decoder',
     'react/jsx-runtime',
     'react-dom/server',
 ]
@@ -31,19 +34,6 @@ const cliConfig = defineConfig({
     },
 })
 
-const serverConfig = defineConfig({
-    input: path.resolve(__dirname, 'src/server.ts'),
-    plugins,
-    external,
-    onwarn: (warning, next) => {
-        if (warning.code === 'EVAL') return
-        next(warning)
-    },
-    output: {
-        dir: path.resolve(__dirname, 'dist', 'server'),
-    },
-})
-
 function copyTsConfig() {
     const packageFiles = ['tsconfig.json', 'package.json', 'README.md']
     return {
@@ -58,7 +48,7 @@ function copyTsConfig() {
 
 const clientConfig = defineConfig({
     input: path.resolve(__dirname, 'src/client.tsx'),
-    external: ['react/jsx-runtime', 'react-dom/client', 'react'],
+    external: ['react/jsx-runtime', 'react-dom/client', 'react', 'fsevents'],
     plugins: [
         resolve(),
         typescript({
@@ -66,10 +56,10 @@ const clientConfig = defineConfig({
         }),
         commonjs(),
         copyTsConfig(),
-    ],
+    ] as Plugin[],
     output: {
         file: path.resolve(__dirname, 'dist', 'client.js'),
     },
 })
 
-export default defineConfig([cliConfig, serverConfig, clientConfig])
+export default defineConfig([cliConfig, clientConfig])

@@ -7,11 +7,11 @@ import * as log from './utils/log'
 import { filePathToSlug, fileExtensionToHTML } from './utils/files'
 import compression from 'compression'
 import { __clientDir, __dirname } from './constants'
-import type { BuildManifest } from '../types'
+import type { BuildManifest } from './types'
 import esbuild from 'esbuild'
 import Webpack from 'webpack'
 import WebpackDevServer from 'webpack-dev-server'
-import webpackConfig from '../webpack.config.js'
+import { getConfig } from './webpack.config.js'
 
 interface Options {
     buildDirectory: string
@@ -57,8 +57,12 @@ class Server {
     }
 
     startDevServer() {
+        const webpackConfig = getConfig('server')
         const compiler = Webpack(webpackConfig)
-        const devServerOptions = { ...webpackConfig.devServer, open: true }
+        const devServerOptions = {
+            ...webpackConfig.devServer, // serverConfig
+            open: true,
+        }
         const server = new WebpackDevServer(devServerOptions, compiler)
         server.start()
     }

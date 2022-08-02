@@ -12,3 +12,9 @@ export const warn = (message?: any, ...optionalParams: any[]) =>
 
 export const error = (message?: any, ...optionalParams: any[]) =>
     console.error(chalk.red(withPrefix(message), ...optionalParams))
+
+export default {
+    info,
+    warn,
+    error,
+}

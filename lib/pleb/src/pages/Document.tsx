@@ -1,4 +1,4 @@
-import { FC, Suspense } from 'react'
+import { FC } from 'react'
 import App from './App'
 import { __clientDir } from '../constants'
 interface Props {
@@ -23,14 +23,11 @@ const Document: FC<Props> = ({ pagePath }) => {
                 <link rel="apple-touch-icon" href="/logo192.png" />
                 <link rel="manifest" href="/manifest.json" />
                 <script type="module" src="/client.js"></script>
-                <script type="module" src={pagePath}></script>
                 <title>Pleb App</title>
             </head>
             <body>
                 <div id="__pleb">
-                    <Suspense>
-                        <App pagePath={pagePath} />
-                    </Suspense>
+                    <App pagePath={pagePath} />
                 </div>
                 <script id="PLEB_DATA"></script>
             </body>

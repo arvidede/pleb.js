@@ -9,10 +9,7 @@ import compression from 'compression'
 import { __clientDir, __dirname } from './constants'
 import type { BuildManifest } from './types'
 import esbuild from 'esbuild'
-import Webpack from 'webpack'
-import WebpackDevServer from 'webpack-dev-server'
-import { getConfig } from './webpack.config.js'
-
+import { getDevMiddleware } from './webpack/devServer'
 interface Options {
     buildDirectory: string
     pagesDirectory: string
@@ -50,6 +47,7 @@ class Server {
             this.router.app.use(compression)
             this.router.app.use('*', this.pageHandler)
         } else {
+            this.startDevServer()
             this.router.app.use('*', this.devPageHandler)
         }
 
@@ -57,14 +55,7 @@ class Server {
     }
 
     startDevServer() {
-        const webpackConfig = getConfig('server')
-        const compiler = Webpack(webpackConfig)
-        const devServerOptions = {
-            ...webpackConfig.devServer, // serverConfig
-            open: true,
-        }
-        const server = new WebpackDevServer(devServerOptions, compiler)
-        server.start()
+        this.router.app.use(getDevMiddleware())
     }
 
     get pageDirectory() {
@@ -95,13 +86,16 @@ class Server {
             .build({
                 entryPoints: [path],
                 bundle: true,
-                outfile: `${this.buildDirectory}/${file.replace('tsx', 'mjs')}`,
+                outfile: `${this.buildDirectory}/${file.replace(
+                    /tsx|ts/,
+                    'mjs'
+                )}`,
                 tsconfig: __dirname + '/tsconfig.json',
                 jsx: 'automatic',
                 format: 'esm',
-                platform: 'node',
+                platform: 'browser',
             })
-            .catch(log.error)
+            .catch((err) => log.error(`Error compiling page: ${err}`))
     }
 
     async buildStaticPages() {
@@ -158,7 +152,7 @@ class Server {
         )
 
         const publicDir = path.join(__clientDir, '/public')
-        console.log(publicDir)
+
         fs.readdirSync(publicDir).forEach((file) => {
             fs.copyFileSync(
                 path.resolve(publicDir, file),

@@ -1,5 +1,11 @@
 {
     "compilerOptions": {
+        "noEmitHelpers": false,
+        "importHelpers": true,
+        "noResolve": false,
+        "noEmit": false,
+        "noEmitOnError": false,
+        "outDir": "dist",
         "allowJs": true,
         "alwaysStrict": true,
         "allowSyntheticDefaultImports": true,
@@ -14,7 +20,6 @@
         "jsx": "react-jsx",
         "lib": ["DOM", "ESNext"],
         "strict": true,
-        "noEmit": false,
         "module": "ESNext",
         "moduleResolution": "node",
         "target": "ES2020",
@@ -22,5 +27,5 @@
         "sourceMap": false
     },
     "exclude": ["/node_modules"],
-    "include": ["**/*.ts"]
+    "include": ["**/*.tsx"]
 }

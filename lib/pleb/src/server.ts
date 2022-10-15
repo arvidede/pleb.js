@@ -3,18 +3,19 @@ import fs from 'fs'
 import path from 'path'
 import getRouter, { Router } from './router'
 import { render } from './render/server'
-import * as log from './utils/log'
+import getLogger, { LogLevel } from './utils/log'
 import { filePathToSlug, fileExtensionToHTML } from './utils/files'
-import compression from 'compression'
-import { __clientDir, __dirname } from './constants'
+import { loaders, __clientDir, __dirname } from './constants'
 import type { BuildManifest } from './types'
 import esbuild from 'esbuild'
-import { getDevMiddleware } from './webpack/devServer'
+
+const log = getLogger('debug')
 interface Options {
     buildDirectory: string
     pagesDirectory: string
     isProd: boolean
-    logLevel: 'warn' | 'info'
+    logLevel: LogLevel
+    publicDirectory: string
 }
 
 export type ServerOptions = Partial<Options>
@@ -22,8 +23,9 @@ export type ServerOptions = Partial<Options>
 const DEFAULT_OPTIONS: Options = {
     buildDirectory: './.pleb',
     pagesDirectory: './pages',
-    isProd: process.env.NODE_ENV === 'production',
-    logLevel: 'info',
+    publicDirectory: './public',
+    isProd: true, //process.env.NODE_ENV === 'production',
+    logLevel: 'debug',
 }
 class Server {
     router!: Router
@@ -32,38 +34,56 @@ class Server {
 
     constructor(options?: ServerOptions) {
         this.options = { ...DEFAULT_OPTIONS, ...options }
+        log.debug(
+            'Starting pleb server with options',
+            JSON.stringify(this.options, null, 2)
+        )
         this.init()
     }
 
-    async init() {
-        await this.setupRouter()
-        this.buildStaticPages()
+    private async init() {
+        await this.build()
+        this.setupRouter()
     }
 
-    private async setupRouter() {
-        this.router = getRouter(this.pageHandler)
+    private async build() {
+        this.createBuildDirectory()
+        await this.buildStaticPages()
+        this.copyPublicDirectory()
+        // this.copyClientScripts()
+        this.createClientBundle()
+    }
+    private setupRouter() {
+        log.debug('Initializing router...')
 
-        if (this.options.isProd) {
-            this.router.app.use(compression)
-            this.router.app.use('*', this.pageHandler)
-        } else {
-            this.startDevServer()
-            this.router.app.use('*', this.devPageHandler)
-        }
+        this.router = getRouter({
+            pageHandler: this.pageHandler || this.devPageHandler,
+            isProd: this.options.isProd,
+            staticDirectory: this.staticDirectory,
+        })
 
         this.router.listen()
+        log.debug('Router initialized')
     }
 
-    startDevServer() {
-        this.router.app.use(getDevMiddleware())
-    }
-
-    get pageDirectory() {
+    private get pageDirectory() {
         return path.resolve(__clientDir, this.options.pagesDirectory)
     }
 
-    get buildDirectory() {
+    private get buildDirectory() {
         return path.resolve(__clientDir, this.options.buildDirectory)
+    }
+
+    private get publicDirectory() {
+        return path.resolve(__clientDir, this.options.publicDirectory)
+    }
+
+    private get staticDirectory() {
+        return path.resolve(this.buildDirectory, 'static')
+    }
+
+    private get serverDirectory() {
+        return path.resolve(this.buildDirectory, 'server')
     }
 
     private get host() {
@@ -72,13 +92,54 @@ class Server {
 
     createBuildDirectory() {
         if (fs.existsSync(this.buildDirectory)) {
-            log.info('Removing existing build output')
+            log.debug('Removing existing build output')
             fs.rmSync(this.buildDirectory, {
                 recursive: true,
                 force: true,
             })
         }
         fs.mkdirSync(this.buildDirectory)
+        fs.mkdirSync(this.staticDirectory)
+        fs.mkdirSync(this.serverDirectory)
+    }
+
+    copyPublicDirectory() {
+        log.debug(
+            `Copying public assets from ${this.publicDirectory} to ${this.staticDirectory}`
+        )
+        fs.readdirSync(this.publicDirectory).forEach((file) => {
+            fs.copyFileSync(
+                path.resolve(this.publicDirectory, file),
+                path.resolve(this.staticDirectory, file)
+            )
+        })
+    }
+
+    copyClientScripts() {
+        log.debug(`Copying client.js to ${this.buildDirectory}`)
+        fs.copyFileSync(
+            path.resolve(__dirname, 'client.js'),
+            path.resolve(this.staticDirectory, 'client.js')
+        )
+    }
+
+    createClientBundle() {
+        return esbuild
+            .build({
+                bundle: true,
+                format: 'iife',
+                loader: loaders,
+                jsx: 'automatic',
+                treeShaking: true,
+                platform: 'browser',
+                outdir: this.staticDirectory,
+                publicPath: '/__pleb/static',
+                tsconfig: __dirname + '/tsconfig.json',
+                mainFields: ['browser', 'module', 'main'],
+                entryPoints: [path.resolve(__dirname, 'client.js')],
+                external: ['react', 'react-dom', 'path', './utils/log'],
+            })
+            .catch((err) => log.error(`Error compiling page: ${err}`))
     }
 
     async compilePage(path: string, file: string) {
@@ -86,14 +147,33 @@ class Server {
             .build({
                 entryPoints: [path],
                 bundle: true,
-                outfile: `${this.buildDirectory}/${file.replace(
+                outfile: `${this.staticDirectory}/${file.replace(
                     /tsx|ts/,
-                    'mjs'
+                    'js'
                 )}`,
                 tsconfig: __dirname + '/tsconfig.json',
+                external: ['react', 'react-dom'],
+                jsx: 'automatic',
+                format: 'iife',
+                target: 'es2020',
+            })
+            .catch((err) => log.error(`Error compiling page: ${err}`))
+    }
+
+    async compileSSRPage(path: string, file: string) {
+        return esbuild
+            .build({
+                entryPoints: [path],
+                bundle: true,
+                outfile: `${this.serverDirectory}/${file.replace(
+                    /tsx|ts/,
+                    'js'
+                )}`,
+                tsconfig: __dirname + '/tsconfig.json',
+                external: ['react', 'react-dom'],
                 jsx: 'automatic',
                 format: 'esm',
-                platform: 'browser',
+                target: 'es2020',
             })
             .catch((err) => log.error(`Error compiling page: ${err}`))
     }
@@ -103,8 +183,6 @@ class Server {
             log.warn(`No 'pages' directory found at ${this.pageDirectory}`)
             this.exit()
         }
-
-        this.createBuildDirectory()
 
         const pages = fs
             .readdirSync(this.pageDirectory)
@@ -124,9 +202,12 @@ class Server {
             const slug = filePathToSlug(page)
             const htmlPage = fileExtensionToHTML(page)
 
-            await this.compilePage(pagePath, page)
+            await Promise.all([
+                this.compilePage(pagePath, page),
+                this.compileSSRPage(pagePath, page),
+            ])
 
-            const renderStream = render(page, {
+            const renderStream = render(slug, {
                 onShellError: log.error,
                 onError: log.error,
                 onAllReady() {
@@ -136,29 +217,18 @@ class Server {
                     renderStream.pipe(outFile)
                 },
             })
-            fs.copyFileSync(pagePath, path.resolve(this.buildDirectory, page))
             buildManifest.pages[slug] = {
                 markup: htmlPage,
                 script: page,
             }
+
+            fs.copyFileSync(pagePath, path.resolve(this.buildDirectory, page))
         }
+
         fs.writeFileSync(
-            path.resolve(this.buildDirectory, 'buildManifest.json'),
+            path.resolve(this.staticDirectory, 'buildManifest.json'),
             JSON.stringify(buildManifest)
         )
-        fs.copyFileSync(
-            path.resolve(__dirname, 'client.js'),
-            path.resolve(this.buildDirectory, 'client.js')
-        )
-
-        const publicDir = path.join(__clientDir, '/public')
-
-        fs.readdirSync(publicDir).forEach((file) => {
-            fs.copyFileSync(
-                path.resolve(publicDir, file),
-                path.resolve(this.buildDirectory, file)
-            )
-        })
 
         this.buildManifest = buildManifest
         log.info(`Compiled ${currentPage - 1} pages.`)
@@ -216,52 +286,27 @@ class Server {
         }
     }
 
-    private getDevPagePathFromRequest = (req: Request) => {
-        const url = new URL(req.originalUrl, this.host)
-        if (url.pathname === '/') url.pathname = 'index'
-        const file = url.pathname + '.tsx'
-        return {
-            page: path.join(this.pageDirectory, file),
-            script: path.join(this.buildDirectory, file),
-        }
-    }
-
     private devPageHandler = async (req: Request, res: Response) => {
         try {
-            const { page } = this.getDevPagePathFromRequest(req)
-            log.info(`${req.method.toUpperCase()}: ${page} ${req.originalUrl}`)
-            if (!fs.existsSync(page)) return res.status(404).end()
-
-            // const renderStream = render(page, {
-            //     onShellReady() {
-            //         res.statusCode = 200
-            //         res.setHeader('Content-type', 'text/html; charset=UTF-8')
-            //         renderStream.pipe(res)
-            //     },
-            //     onShellError(error) {
-            //         log.error(error)
-            //         res.statusCode = 500
-            //         res.send('<!doctype html><p>Loading...</p>')
-            //     },
-            //     onAllReady() {
-            //         res.statusCode = 200
-            //         res.setHeader('Content-type', 'text/html; charset=UTF-8')
-            //         renderStream.pipe(res)
-            //     },
-            //     onError(err) {
-            //         console.error(err)
-            //     },
-            // })
-
-            // const transformedMarkup = await this.vite.transformIndexHtml(
-            //     req.originalUrl,
-            //     markup
-            // )
-
-            return res
-                .status(200)
-                .set('Content-Type', 'text/html; charset=UTF-8')
-                .sendFile(__clientDir + '/.pleb/index.html')
+            const { slug, pagePath } = this.getPagePathFromRequest(req)
+            log.debug(`${req.method.toUpperCase()}: ${slug} ${req.originalUrl}`)
+            if (!fs.existsSync(pagePath)) return res.status(404).end()
+            const renderStream = render(slug, {
+                onShellReady() {},
+                onShellError(error) {
+                    log.error(error)
+                    res.statusCode = 500
+                    res.send('<!doctype html><p>Loading...</p>')
+                },
+                onAllReady() {
+                    res.statusCode = 200
+                    res.setHeader('Content-type', 'text/html; charset=UTF-8')
+                    renderStream.pipe(res)
+                },
+                onError(err) {
+                    console.error(err)
+                },
+            })
         } catch (error: unknown) {
             log.error(error, req.url)
             return res.status(500).end()

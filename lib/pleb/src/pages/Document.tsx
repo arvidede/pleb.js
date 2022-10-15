@@ -10,7 +10,7 @@ const Document: FC<Props> = ({ pagePath }) => {
         <html lang="en">
             <head>
                 <meta charSet="utf-8" />
-                <link rel="icon" href="/favicon.ico" />
+                <link rel="icon" href="/__pleb/static/favicon.ico" />
                 <meta
                     name="viewport"
                     content="width=device-width, initial-scale=1"
@@ -20,9 +20,12 @@ const Document: FC<Props> = ({ pagePath }) => {
                     name="description"
                     content="Web site created using pleb"
                 />
-                <link rel="apple-touch-icon" href="/logo192.png" />
-                <link rel="manifest" href="/manifest.json" />
-                <script type="module" src="/client.js"></script>
+                <link
+                    rel="apple-touch-icon"
+                    href="/__pleb/static/logo192.png"
+                />
+                <link rel="manifest" href="/__pleb/static/manifest.json" />
+                <link rel="modulepreload" href="/__pleb/static/client.js" />
                 <title>Pleb App</title>
             </head>
             <body>
@@ -30,6 +33,7 @@ const Document: FC<Props> = ({ pagePath }) => {
                     <App pagePath={pagePath} />
                 </div>
                 <script id="PLEB_DATA"></script>
+                <script type="module" src="/__pleb/static/client.js"></script>
             </body>
         </html>
     )

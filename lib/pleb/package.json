@@ -29,7 +29,7 @@
     "scripts": {
         "build:rollup": "rollup --config rollup.config.js",
         "watch": "rimraf dist && mkdir dist && scripts/copy_files_to_bundle.sh && yarn tsc  --watch",
-        "build": "yarn build:prepare && yarn build:server && yarn build:client",
+        "build": "yarn build:prepare && yarn build:server",
         "build:prepare": "rimraf dist && mkdir dist && scripts/copy_files_to_bundle.sh",
         "build:server": "yarn tsc",
         "build:client": "webpack",

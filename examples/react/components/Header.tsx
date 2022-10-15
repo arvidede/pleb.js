@@ -2,9 +2,9 @@ interface Props {}
 
 const styles = {
     container: {
-        width: '100%',
         backgroundColor: '#45CB85',
         padding: '2rem',
+        boxSizing: 'border-box',
         color: '#fff',
     } as React.CSSProperties,
     nav: {

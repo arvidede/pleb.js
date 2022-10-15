@@ -2,6 +2,7 @@
     "name": "pleb-example-app",
     "version": "0.1.0",
     "private": true,
+    "type": "module",
     "scripts": {
         "watch": "nodemon --exec yarn pleb dev --watch node_modules/pleb/bin/pleb.js",
         "dev": "yarn pleb dev",

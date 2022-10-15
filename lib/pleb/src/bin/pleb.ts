@@ -1,7 +1,19 @@
 #!/usr/bin/env node --no-warnings --experimental-specifier-resolution=node
 import { program } from 'commander'
+import { warn } from '../utils/log'
 import dev from '../cli/dev'
 import start from '../cli/start'
+import { createRequire } from 'module'
+const __require =
+    typeof require === 'undefined' ? createRequire(import.meta.url) : require
+
+;['react', 'react-dom'].forEach((dependency) => {
+    try {
+        __require.resolve(dependency)
+    } catch (err) {
+        warn(`Install ${dependency} you pleb`)
+    }
+})
 
 program
     .name('pleb-cli')

@@ -6,7 +6,6 @@ interface PlebPage {}
 
 const Home: PlebPage = () => {
     // const [count, setCount] = useState(0)
-    console.log('COMPONENT')
     return (
         <div>
             <Header />

@@ -8,7 +8,7 @@ const action = (arg: Args) => {
     const options: ServerOptions = {
         buildDirectory: './.pleb', // TODO: Get from config
         pagesDirectory: './pages', // TODO: Get from config
-        isProd: false,
+        isProd: true,
     }
     createServer(options)
 }

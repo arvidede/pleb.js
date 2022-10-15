@@ -1,16 +1,19 @@
 import express, { RequestHandler, Application } from 'express'
-import path from 'path'
 import { __clientDir } from './constants'
-import * as log from './utils/log'
+import getLogger from './utils/log'
+import { getDevMiddleware } from './webpack/devServer'
+import compression from 'compression'
 
+const log = getLogger()
 interface Options {
     pageHandler: RequestHandler
+    isProd?: boolean
     port?: number
-    publicDir?: string
+    staticDirectory: string
 }
 
 export class Router {
-    app!: Application
+    private app!: Application
     private options!: Options
     constructor(options: Options) {
         this.options = options
@@ -18,8 +21,8 @@ export class Router {
         this.buildRoutes()
     }
 
-    private get publicDir() {
-        return this.options.publicDir || path.resolve(__clientDir, '.pleb')
+    private get staticDirectory() {
+        return this.options.staticDirectory
     }
 
     private get port() {
@@ -31,22 +34,29 @@ export class Router {
     }
 
     private buildRoutes() {
-        this.app.use(express.static(this.publicDir))
-        // this.app.use('*', this.options.pageHandler)
+        if (this.options.isProd) {
+            this.app.use(compression())
+            this.app.use('/__pleb/static', express.static(this.staticDirectory))
+        } else {
+            log.debug('Initializing webpack')
+            this.app.use(getDevMiddleware())
+        }
+
+        this.app.use('*', this.options.pageHandler)
     }
 
     listen() {
         this.app.listen(this.port, () => {
-            log.info(`Listening at http://localhost:${this.port}`)
+            log.info(`Pleb available at http://localhost:${this.port}`)
         })
     }
 }
 
 let router: Router
 
-export default function getRouter(pageHandler: RequestHandler) {
+export default function getRouter(options: Options) {
     if (!router) {
-        router = new Router({ pageHandler })
+        router = new Router(options)
     }
     return router
 }

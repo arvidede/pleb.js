@@ -1,4 +1,4 @@
-#!/usr/bin/env node --experimental-specifier-resolution=node
+#!/usr/bin/env node --no-warnings --experimental-specifier-resolution=node
 import { program } from 'commander'
 import dev from '../cli/dev'
 import start from '../cli/start'
